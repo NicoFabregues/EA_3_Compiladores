@@ -1,0 +1,9 @@
+NOMBRE                                   | TIPO           | VALOR                                    | LONGITUD             
+------------------------------------------------------------------------------------------------------------------------
+_"Ingrese un valor pivot mayor o igual a 1:"       | CTE STRING     | "Ingrese un valor pivot mayor o igual a 1:"        | 42        
+pivot                                              | ID             |                                                    | 0         
+resul                                              | ID             |                                                    | 0         
+_1                                                 | CTE ENTERA     | 1                                                  | 0         
+_2                                                 | CTE ENTERA     | 2                                                  | 0         
+_3                                                 | CTE ENTERA     | 3                                                  | 0         
+_"El resultado es: "                               | CTE STRING     | "El resultado es: "                                | 18        
