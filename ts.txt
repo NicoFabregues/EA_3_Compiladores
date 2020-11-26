@@ -1,9 +1,12 @@
-NOMBRE                                   | TIPO           | VALOR                                    | LONGITUD             
-------------------------------------------------------------------------------------------------------------------------
-_"Ingrese un valor pivot mayor o igual a 1:"       | CTE STRING     | "Ingrese un valor pivot mayor o igual a 1:"        | 42        
+NOMBRE                                             | TIPO           | VALOR                                              | LONGITUD             
+-------------------------------------------------------------------------------------------------------------------------------------
+_"Ingrese un valor pivot mayor o igual a 1:"       | CTE STRING     | "Ingrese un valor pivot mayor o igual a 1:"        | 41        
 pivot                                              | ID             |                                                    | 0         
 resul                                              | ID             |                                                    | 0         
 _1                                                 | CTE ENTERA     | 1                                                  | 0         
 _2                                                 | CTE ENTERA     | 2                                                  | 0         
 _3                                                 | CTE ENTERA     | 3                                                  | 0         
-_"El resultado es: "                               | CTE STRING     | "El resultado es: "                                | 18        
+_15                                                | CTE ENTERA     | 15                                                 | 0         
+_17                                                | CTE ENTERA     | 17                                                 | 0         
+_22                                                | CTE ENTERA     | 22                                                 | 0         
+_"El resultado es: "                               | CTE STRING     | "El resultado es: "                                | 17        

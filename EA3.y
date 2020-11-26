@@ -8,13 +8,14 @@
 //#include "PILAdinamica.h"
 
 /*-------------------DECLARACION DE VARIABLES-------------------*/
+int cantImpares = 0;
 /*
-int progPtr = 0; //Variables para acciones semanticas.
+int sPtr = 0; //Variables para acciones semanticas -- Arbol sintactico.
+int progPtr = 0; 
 int sentPtr = 0;
 int writePtr = 0;
 int readPtr = 0;
 int asigPtr = 0;
-int sPtr = 0;
 int sumaPtr = 0;
 int listaPtr = 0;
 
@@ -41,6 +42,8 @@ int yylex();
 
 int crear_nodo(char*, int, int);
 int crear_hoja(char*);
+
+int esImpar(int);
 /*
 char* ConvertirAString(int);
 void procesarIfAnd(int);
@@ -85,7 +88,7 @@ t_pila pilaTIPO;
 s:
     prog {
         printf("\n Regla 0: Start -> Prog");
-        printf("\n\nFIN PROGRAMA\n\n");
+        printf("\n\nFIN PROGRAMA --> Cant Impares: %d\n\n", cantImpares);
         crearArchivoTS();
         /* 
         crearArbol();
@@ -118,17 +121,26 @@ lista:
             char valorString[100];
             sprintf(valorString, "%d", $1);
             cargarEnTS(valorString, 2);
+            
+            if( esImpar($1) == 1 )
+            {
+                cantImpares++;
+            }
         } |
     lista COMA CTE {
-            printf("\n Regla 9: lista -> lista COMA CTE"); 
-            //cargarEnTS( $3, 2 );
+            printf("\n Regla 9: lista -> lista COMA CTE");
             char valorString[100];
             sprintf(valorString, "%d", $3);
             cargarEnTS(valorString, 2);
+
+            if( esImpar($3) == 1 )
+            {
+                cantImpares++;
+            }
         };
 
 write:
-    WRITE CTE_STRING {printf("\n Regla %s: write -> WRITE CTE_STRING", $2); cargarEnTS( $2, 4 );} |
+    WRITE CTE_STRING {printf("\n Regla 10: write -> WRITE CTE_STRING"); cargarEnTS( $2, 4 );} |
     WRITE ID {printf("\n Regla 11: write -> WRITE ID"); cargarEnTS( $2, 5 );};
 
 %%
@@ -169,4 +181,8 @@ int crear_nodo(char* op, int nodo1, int nodo2)
 int crear_hoja(char* valor)
 {
     return 1;
+}
+
+int esImpar( int valor ){
+    return (valor%2);
 }

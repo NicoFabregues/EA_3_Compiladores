@@ -32,8 +32,8 @@ void crearArchivoTS(void) {
 		exit (1);
 	}
 	    
-    fprintf(fp, "NOMBRE %33s | TIPO %9s | VALOR %34s | LONGITUD %12s\n", " ", " ", " ", " ");
-    for (i=0; i<120; i++)
+    fprintf(fp, "NOMBRE %43s | TIPO %9s | VALOR %44s | LONGITUD %12s\n", " ", " ", " ", " ");
+    for (i=0; i<133; i++)
         fprintf(fp, "-");
     fprintf(fp, "\n");   
     
@@ -51,13 +51,12 @@ void crearArchivoTS(void) {
  }
 
 int cargarEnTS ( char *nombre, int val ){
-    printf("\n\n-%s--|%d\n", nombre, val);
     int x;
 	int l_repetido=0;
     char nombreConGuion[strlen(nombre)+1];    
-    printf("\n\nAAAA\n");
+    
     for (x=0; x<100; x++ ){
-        if (simbolo[x].flag==1){//para saber si el token ya esta en la tabla
+        if (simbolo[x].flag==1){//El token ya esta en la tabla
             if (strcmp (nombre,simbolo[x].nombre)==0){
                 return x;              
             }else{
@@ -68,15 +67,11 @@ int cargarEnTS ( char *nombre, int val ){
                 }
             }
         }
-    }
-    printf("\n\nBBBB\n");
-    for (x=0; x<100 ; x++){
-        if(simbolo[x].flag==0){
-
-            if(val == 2 || val == 4){
-                if( val == 4 )
+        else {//El token NO esta en la tabla
+            if(val == 2 || val == 4){ //Es una CTE INT o STR
+                if( val == 4 )//Si es CTE STR, cuanto su longitud
                 {
-                    simbolo[x].longitud = strlen(nombre+1);
+                    simbolo[x].longitud = strlen(nombre+2);
                 }
                 strcpy(nombreConGuion, "_");   
                 strcat(nombreConGuion, nombre);
@@ -92,7 +87,6 @@ int cargarEnTS ( char *nombre, int val ){
 
             return x;
         }
-    }
-	printf("\n\nCCCC\n");	
+    }		
 	return x;
  }//retorna posicion en la tabla de simbolos
