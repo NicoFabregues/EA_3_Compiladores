@@ -1,0 +1,12 @@
+PADRE                           |	HIJO IZQ                        |	HIJO DER                        
+sent                            	sent                            	WRITE                           
+sent                            	sent                            	WRITE                           
+sent                            	sent                            	=                               
+sent                            	WRITE                           	READ                            
+WRITE                           	stdout                          	"Ingrese un valor pivot mayor o igual a 1:"
+READ                            	stdin                           	pivot                           
+=                               	resul                           	+                               
++                               	+                               	11                              
++                               	1                               	77                              
+WRITE                           	stdout                          	"El resultado es: "             
+WRITE                           	stdout                          	resul                           
