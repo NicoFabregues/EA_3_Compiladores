@@ -537,7 +537,7 @@ void enumerarNodos(t_nodo *n){
 void generarArchivoGraphViz(t_nodo *raiz){
     nroNodo=0;
     enumerarNodos(raiz);
-    FILE*pf=fopen("graphInfo.dot","w+");
+    FILE*pf=fopen("intermedia.dot","w+");
     if(!pf){
         printf("\nError al generar el archivo para GraphViz\n");
         return;
@@ -647,7 +647,7 @@ int obtenerIndiceTS(char* nombre)
 }
 
 void generarAssembler(t_nodo* arbol){
-    FILE*fp=fopen("EA3.asm","w+");
+    FILE*fp=fopen("Final.asm","w+");
     if(!fp){
         printf("Error al generar el assembler.\n");
         return;
