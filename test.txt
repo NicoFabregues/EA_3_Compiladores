@@ -1,5 +1,23 @@
 WRITE "Ingrese un valor pivot mayor o igual a 1:"
 READ pivot
-resul = sumaimpar ( pivot ; [2, 2, 1, 4, 77, 11] )
+resul =sumaimpar (pivot;[1,2,3,4,5])
+WRITE "El resultado es: "
+WRITE resul
+
+WRITE "Ingrese un valor pivot mayor o igual a 1:"
+READ pivot
+resul =sumaimpar (pivot;[2,2,2,4])
+WRITE "El resultado es: "
+WRITE resul
+
+WRITE "Ingrese un valor pivot mayor o igual a 1:"
+READ pivot
+resul =sumaimpar (pivot;[])
+WRITE "El resultado es: "
+WRITE resul
+
+WRITE "Ingrese un valor pivot mayor o igual a 1:"
+READ pivot
+resul =sumaimpar (pivot;[2,21,7,44,40,33,5])
 WRITE "El resultado es: "
 WRITE resul

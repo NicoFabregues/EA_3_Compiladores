@@ -30,31 +30,68 @@ typedef struct s_nodo
     struct s_nodo *der;
 }t_nodo;
 
+typedef struct s_nodoPila{
+    t_nodo info;
+    struct s_nodoPila* psig;
+}t_nodoPila;
+
+typedef t_nodoPila *t_pila;
+
 // Variables globales
 int nroNodo;
+int nroAux = 1;
+int cantErroresMsg = 0;
+int nroIf = 0;
+t_pila pilaIf;
+t_pila pilaImpares;
+t_pila pilaElementos;
+int cantLista = 0;
+int nroLista = 0;
+char ultimoPivot[50];
+int nroErPivotInvalido =0;
 
-
-// Declaraciones
+/*  FUNCIONES TS  */
 void crearArchivoTS(void);
-int cargarEnTS (char*, int);
+int cargarEnTS ( char *nombre, int val );
 int existeId(char * id);
 
-/*-------------------FUNCIONES ARBOL-------------------*/
+/*  FUNCIONES PILA  */
+int apilar(t_pila* pp,t_nodo* nodo);
+int desapilar(t_pila* pp,t_nodo* info);
+void crear_pila(t_pila* pp);
+
+/*  FUNCIONES ARBOL  */
 t_nodo * crearHoja(const t_info *d);
 t_nodo * crearNodo(const t_info *d, t_nodo * hijo_izq, t_nodo * hijo_der);
 t_nodo * crearHojaT(const char* info);
 void insertarHijo (t_nodo ** puntero, t_nodo * hijo);
-t_nodo * copiarNodo(t_nodo* nodo);
-int esHoja(t_nodo* nodo);
 int contarAux(t_nodo* nodo);
 void recorrer_en_orden(const t_nodo* nodo);
 void recorrer_guardando(const t_nodo* nodo, FILE* pf);
 void grabarArbol(t_nodo* arbol);
-void recorrerGenerandoCodigo(t_nodo* nodo, FILE* pf);
 void recorrerGenerandoViz(const t_nodo* nodo, FILE* pf);
 void generarArchivoGraphViz(t_nodo *raiz);
+void recorrerGenerandoCodigo(t_nodo* nodo, FILE* fp);
 void enumerarNodos(t_nodo *n);
-char * reemplazarCaracter(char const * const original,  char const * const pattern,  char const * const replacement);
+
+/*  FUNCIONES ASM  */
+void escribirASM(t_nodo* op1, t_nodo *op2, t_nodo *opr, FILE* pf);
+void cargarDATA(FILE* fp, t_nodo *arbol);
+void generarAssembler(t_nodo* arbol);
+void generarCodigo (FILE* fp, t_nodo *arbol);
+char * obtenerTipodb_dd(int tipoDato);
+int obtenerTipo(char* valor);
+int obtenerIndiceTS(char* nombre);
+
+/*  FUNCIONES CREAR NODOS SINTACTICO  */
+t_nodo * crearNodoBloqueIf(int x, char * id);
+t_nodo * crearNodoCondicion();
+t_nodo * asignarPivot();
+t_nodo * sumarValor(int x, char * id);
+t_nodo * restarCantidad();
+t_nodo * crearMensajeValidacion(char* error);
+t_nodo * crearCondicionValidacion(int cantLista, char * idPivot, char* valor);
+t_nodo * poner_id_en_cero(char*);
 
 // Funciones
 
@@ -104,7 +141,7 @@ int cargarEnTS ( char *nombre, int val ){
         }
         else {//El token NO esta en la tabla
             if(val == 2 || val == 4){ //Es una CTE INT o STR
-                if( val == 4 )//Si es CTE STR, cuanto su longitud
+                if( val == 4 )//Si es CTE STR, cuento su longitud
                 {
                     simbolo[x].longitud = strlen(nombre+2);
                 }
@@ -180,39 +217,15 @@ void insertarHijo (t_nodo ** puntero, t_nodo * hijo){
     *puntero=hijo;
 }
 
-t_nodo * copiarNodo(t_nodo* nodo){
-    if(!nodo)
-        return NULL;
-    t_nodo *nuevo=(t_nodo*)malloc(sizeof(t_nodo));
-    nuevo->info=nodo->info;
-    if(nodo->izq)
-        nuevo->izq=copiarNodo(nodo->izq);
-    else
-        nuevo->izq=NULL;
-    if(nodo->der)
-        nuevo->der=copiarNodo(nodo->der);
-    else
-        nuevo->der=NULL;
-    return nuevo;
-}
-
-int esHoja(t_nodo* nodo){
-    if(nodo->izq==NULL&&nodo->der==NULL)
-        return 1;
-    return 0;
-}
-/*
 int contarAux(t_nodo* nodo){ //Cuenta los operadores(?)
     if(nodo){
-        if(strcmp(nodo->info.valor,"*") ==0||strcmp(nodo->info.valor,"-")==0
-            ||strcmp(nodo->info.valor,"+") ==0||strcmp(nodo->info.valor,"/")==0
-            ||strcmp(nodo->info.valor,"++") ==0)
+        if( strcmp(nodo->info.valor,"+") == 0 || strcmp(nodo->info.valor,"-") == 0 )
             return 1+contarAux(nodo->izq)+contarAux(nodo->der);
         else 
             return contarAux(nodo->izq)+contarAux(nodo->der);
     }
     return 0;
-}*/
+}
 
 void recorrer_en_orden(const t_nodo* nodo)
 {
@@ -248,68 +261,250 @@ void grabarArbol(t_nodo* arbol)
     fclose(pf);
 }
 
-void recorrerGenerandoCodigo(t_nodo* nodo, FILE* pf)
-{/*
+void recorrerGenerandoCodigo(t_nodo* nodo, FILE* fp)
+{
     if(nodo)
+	{
+        if(strcmp(nodo->info.valor,"IF_val")==0)
+        {
+            t_nodo *aux = nodo->izq;
+            fprintf(fp, "\tfld %s\n", aux->izq->info.valor);
+            fprintf(fp, "\tfld %s\n", aux->der->info.valor);
+            fprintf(fp, "\tfxch\n");
+            fprintf(fp, "\tfcomp\n");
+            fprintf(fp, "\tffree St(0)\n");
+            fprintf(fp, "\tfstsw ax\n");
+            fprintf(fp, "\tsahf\n");
+            
+            fprintf(fp, "\tjae _erPivotInvalido%d\n", nroErPivotInvalido );
+            fprintf(fp, "\tdisplayString @erPivotInvalido\n");            
+            fprintf(fp, "\tjmp finalizar_por_error\n");
+            fprintf(fp, "_erPivotInvalido%d:\n", nroErPivotInvalido);
+            nroErPivotInvalido++;
+
+        }
+
+        if(strcmp(nodo->info.valor,"IF1")==0)
+        {
+            t_nodo *aux = nodo->izq;
+            fprintf(fp, "\tfld %s\n", aux->izq->info.valor);
+            fprintf(fp, "\tfld %s\n", aux->der->info.valor);
+            fprintf(fp, "\tfxch\n");
+            fprintf(fp, "\tfcomp\n");
+            fprintf(fp, "\tffree St(0)\n");
+            fprintf(fp, "\tfstsw ax\n");
+            fprintf(fp, "\tsahf\n");
+            fprintf(fp, "\tjna _if%d\n", nroIf);
+            t_info info;
+            info.nro = nroIf;
+            t_nodo * nodoPila= crearHoja(&info);
+            apilar(&pilaIf, nodoPila);
+            nroIf++;
+        }
+
+        if(strcmp(nodo->info.valor,"IF")==0 )
+        {
+            t_nodo * aux = (t_nodo *) malloc (sizeof(t_nodo));;
+            if(desapilar(&pilaIf, aux) != 0)
+            {
+                fprintf(fp, "\tjmp _if%d\n", aux->info.nro + 1);
+                fprintf(fp, "_if%d:\n", aux->info.nro);
+            }
+            aux = nodo->izq;
+            fprintf(fp, "\tfld %s\n", aux->izq->info.valor);
+            fprintf(fp, "\tfld %s\n", aux->der->info.valor);
+            fprintf(fp, "\tfxch\n");
+            fprintf(fp, "\tfcomp\n");
+            fprintf(fp, "\tffree St(0)\n");
+            fprintf(fp, "\tfstsw ax\n");
+            fprintf(fp, "\tsahf\n");
+            fprintf(fp, "\tjna _if%d\n", nroIf);
+            t_info info;
+            info.nro = nroIf;
+            t_nodo * nodoPila= crearHoja(&info);
+            apilar(&pilaIf, nodoPila);
+            nroIf++;
+        }
+        
+        if(strcmp(nodo->info.valor,"else")==0)
+        {
+            t_nodo * aux = (t_nodo *) malloc (sizeof(t_nodo));;
+            if(desapilar(&pilaIf, aux) != 0)
+            {
+                fprintf(fp, "\tjmp _if%d\n", aux->info.nro + 1);
+                fprintf(fp, "_if%d:\n", aux->info.nro);
+            }
+        }
+
+        recorrerGenerandoCodigo(nodo->izq,fp);
+        recorrerGenerandoCodigo(nodo->der,fp);
+        if(nodo->izq!=NULL&&nodo->der!=NULL)
+        {            
+            escribirASM(nodo->izq,nodo->der,nodo,fp);
+        }
+    }
+}
+
+void escribirASM(t_nodo* op1, t_nodo *op2, t_nodo *opr, FILE* pf)
+{  
+    t_nodo *aux;
+
+    if(strcmp(opr->info.valor,"WRITE")==0)
     {
-        if(strcmp(nodo->info.valor,"if")==0){
-            contIf++;
-            contCondiciones=1;
-            t_info info;
-            info.nro=contIf;
-            ponerEnPila(&pilaNroIf,crearHoja(&info));
-            if(strcmp(nodo->izq->info.valor,"AllEqual")!=0)
-                fprintf(pf,"if_%d:\n",contIf);
-            esCondWhile=0;
-            if(strcmp(nodo->der->info.valor,"bloque if")==0){
-                nroElse++;
+        if(strcmp(op1->info.valor,"stdout")==0){
+            if(obtenerTipo(op2->info.valor)==5 )
+            {
+                fprintf(pf,"\tdisplayFloat %s,2\n", op2->info.valor);
+            }
+            else if(strstr(op2->info.valor, "@"))
+            {
+                fprintf(pf,"\tdisplayString %s\n", op2->info.valor);
+            }
+            else
+            {
+                fprintf(pf,"\tdisplayString @str%d\n", obtenerIndiceTS(op2->info.valor));
+            }
+            fprintf(pf, "\tnewLine\n");
+        }
+        
+        if(strcmp(op1->info.valor,"stderr")==0){
+
+            if(strcmp(op2->info.valor, "@erListaVacia") == 0 || strcmp(op2->info.valor, "@erSinImpares") == 0)
+            {
+                fprintf(pf,"\tdisplayString %s\n", op2->info.valor);
+                fprintf(pf, "\tnewLine\n");
+                //fprintf(pf, "jmp _fin\n");
+            }
+
+            if(strcmp(op2->info.valor, "@erElementosInsuficientes") == 0 || strcmp(op2->info.valor, "@erImparesInsuficientes") == 0 )
+            {
+                fprintf(pf,"\tdisplayString %s\n", op2->info.valor);
+                fprintf(pf, "\tnewLine\n");
+                fprintf(pf, "\tjmp fin_lista%d\n", nroLista);
+            }
+            
+            if(strcmp(op2->info.valor, "@erPivotInvalido") == 0 )
+            {
+                //fprintf(pf, "jmp _fin\n");
             }
         }
-        if(strcmp(nodo->info.valor,"AllEqual")==0){
-            contIf++;
-            t_info info;
-            info.nro=contIf;
-            ponerEnPila(&pilaNroIf,crearHoja(&info));
-            fprintf(pf,"if_%d:\n",contIf);
-            esCondWhile=0;
-            if(strcmp(nodo->der->info.valor,"bloque if")==0){
-                nroElse++;
+    }
+
+    if(strcmp(opr->info.valor,"READ")==0)
+    {
+        if(obtenerTipo(op2->info.valor)==5)
+        {
+            fprintf(pf,"\tgetFloat %s,0\n", op2->info.valor);
+            /*
+            fprintf(pf, "getFloat %s,2\n", op2->info.valor);
+            fprintf(pf, "fld %s\n", op2->info.valor);
+            fprintf(pf, "fld @rangoMinimo\n");
+            fprintf(pf, "fxch\n");
+            fprintf(pf, "fcomp\n");
+            fprintf(pf, "ffree St(0)\n");
+            fprintf(pf, "fstsw ax\n");
+            fprintf(pf, "sahf\n");
+
+            nroErPivotInvalido++;*/
+            strcpy(ultimoPivot, op2->info.valor);
+            //for(int j=0;j<cantLista;j++)
+            //{
+                fprintf(pf, "\tfld %s\n", ultimoPivot);
+                fprintf(pf, "\tfstp @pivot\n");
+            //}
+            
+        }
+    }
+
+    if(strcmp(opr->info.valor,"+")==0)
+    {
+        if(strstr(op1->info.valor,"@") || obtenerTipo(op1->info.valor) == 5)
+        {
+            fprintf(pf,"\tfld %s\n", op1->info.valor);
+        }
+        else
+        {
+            fprintf(pf,"\tfld @int%d\n", obtenerIndiceTS(op1->info.valor));
+        }
+        
+        if(strstr(op2->info.valor,"@") || obtenerTipo(op2->info.valor) == 5)
+        {
+            fprintf(pf,"\tfld %s\n", op2->info.valor);
+        }
+        else
+        {
+            fprintf(pf,"\tfld @int%d\n", obtenerIndiceTS(op2->info.valor));
+        }
+        fprintf(pf,"\tfadd\n");
+        fprintf(pf,"\tfstp @aux%d\n", nroAux);
+        nroAux++;
+    }
+
+    if(strcmp(opr->info.valor,"-")==0)
+    {
+        if(strstr(op1->info.valor,"@") || obtenerTipo(op1->info.valor) == 5)
+        {
+            fprintf(pf,"\tfld %s\n", op1->info.valor);
+        }
+        else
+        {
+            fprintf(pf,"\tfld @int%d\n", obtenerIndiceTS(op1->info.valor));
+        }
+
+        if(strstr(op2->info.valor,"@") || obtenerTipo(op2->info.valor) == 5)
+        {
+            fprintf(pf,"\tfld %s\n", op2->info.valor);
+        }
+        else
+        {
+            fprintf(pf,"\tfld @int%d\n", obtenerIndiceTS(op2->info.valor));
+        }
+        fprintf(pf,"\tfsub\n");
+        fprintf(pf,"\tfstp @aux%d\n", nroAux);
+        nroAux++;
+    }
+
+    if(strcmp(opr->info.valor,"sent")==0 && strcmp(op2->info.valor,"IF1")==0){
+        fprintf(pf,"fin_lista%d:\n", nroLista);
+        nroLista++;
+    }
+    
+    if(strcmp(opr->info.valor,"=")==0)
+    {
+        if(obtenerTipo(op2->info.valor) == 5)
+        {
+            fprintf(pf,"\tfld %s\n", op2->info.valor);
+        }
+        else
+        {
+            if(strcmp(op2->info.valor,"@valor_cero")==0){
+                fprintf(pf,"\tfld %s\n", op2->info.valor);
+            } else {
+                fprintf(pf,"\tfld @aux%d\n", nroAux - 1);
             }
+            
         }
-        if(strcmp(nodo->info.valor,"while")==0){
-            contCondiciones=1;
-            contWhile++;
-            t_info info;
-            info.nro=contWhile;
-            ponerEnPila(&pilaNroWhile,crearHoja(&info));
-            fprintf(pf,"while_%d:\n",contWhile);
-            esCondWhile=1;
+        fprintf(pf,"\tfstp %s\n", op1->info.valor);
+        
+    }
+
+    if(strcmp(opr->info.valor,"bloque_if")==0)
+    {
+        aux = (t_nodo *) malloc (sizeof(t_nodo));;
+        if(desapilar(&pilaIf, aux) != 0)
+        {
+            fprintf(pf, "_if%d:\n", aux->info.nro);
         }
-        if(strcmp(nodo->info.valor,"or")==0){
-                esOr=1;
-                if(nroElse != 0)
-                    nroElse++;
+    }
+
+    if(strcmp(opr->info.valor,"cuerpo")==0)
+    {
+        aux = (t_nodo *) malloc (sizeof(t_nodo));;
+        if(desapilar(&pilaIf, aux) != 0)
+        {
+            fprintf(pf, "_if%d:\n", aux->info.nro);
         }
-        if(strcmp(nodo->info.valor,"and")==0){
-                if(nroElse != 0)
-                    nroElse++;
-        }
-        recorrerGenerandoCodigo(nodo->izq,pf);
-        if(strcmp(nodo->info.valor,"if")==0){
-            fprintf(pf,"true_if_%d:\n",(*pilaNroIf).info.info.nro);
-        }
-        if(strcmp(nodo->info.valor,"while")==0){
-            fprintf(pf,"true_while_%d:\n",(*pilaNroWhile).info.info.nro);
-        }
-        if(strcmp(nodo->info.valor,"bloque if")==0){
-            fprintf(pf,"\tjmp\t end_if_%d\n",(*pilaNroIf).info.info.nro);
-            fprintf(pf,"else_if_%d:\n",(*pilaNroIf).info.info.nro);
-        }
-        recorrerGenerandoCodigo(nodo->der,pf);
-        if(esHoja(nodo)==0&&esHoja(nodo->izq)&&esHoja(nodo->der)){ //Si solo tiene hijos hojas
-            grabarOperacionAssembler(nodo->izq,nodo->der,nodo,pf);
-        }
-    }*/
+    }
 }
 
 void recorrerGenerandoViz(const t_nodo* nodo, FILE* pf)
@@ -353,32 +548,291 @@ void generarArchivoGraphViz(t_nodo *raiz){
     fclose(pf);
 }
 
-char * reemplazarCaracter(char const * const original,  char const * const pattern,  char const * const replacement) 
-{
-	size_t const replen = strlen(replacement);
-	size_t const patlen = strlen(pattern);
-	size_t const orilen = strlen(original);
-	size_t patcnt = 0;
-	const char * oriptr;
-	const char * patloc;
-	for (oriptr = original; patloc = strstr(oriptr, pattern); oriptr = patloc + patlen){
-		patcnt++;
-	}
-  {
-	size_t const retlen = orilen + patcnt * (replen - patlen);
-    char * const returned = (char *) malloc( sizeof(char) * (retlen + 1) );
-    if (returned != NULL)
+void cargarDATA(FILE* fp, t_nodo *arbol){
+    fprintf(fp, ".DATA\n\n");
+
+    for (int x = 0; x < 100; x++)
     {
-	char * retptr = returned;
-	for (oriptr = original; patloc = strstr(oriptr, pattern); oriptr = patloc + patlen){
-	size_t const skplen = patloc - oriptr;
-	strncpy(retptr, oriptr, skplen);
-	retptr += skplen;
-	strncpy(retptr, replacement, replen);
-	retptr += replen;
+        if( simbolo[x].flag == 1 )
+        {
+            if(simbolo[x].tipoDato == 2)
+            {
+                fprintf(fp,  "@int%d \t%s %.2f\n", x, obtenerTipodb_dd(simbolo[x].tipoDato),atof(simbolo[x].valor));
+            }
+            else if(simbolo[x].tipoDato == 4)
+            {
+                fprintf(fp,  "@str%d \t%s %s, \"$\", %d dup (?)\n", x, obtenerTipodb_dd(simbolo[x].tipoDato),simbolo[x].valor, simbolo[x].longitud);
+            }
+            else{
+                fprintf(fp,  "%s \t%s ?\n", simbolo[x].nombre, obtenerTipodb_dd(simbolo[x].tipoDato));
+            }
+        }else{
+            break;
+        }    		
 	}
-	strcpy(retptr, oriptr);
-	}
-	return returned;
-	}
+
+    //DECLARACION DE AUXILIARES
+    int cantAux=contarAux(arbol);
+    int j;
+    for(j=0;j<cantAux;j++){
+         fprintf(fp,  "@aux%d\tdd ?\n",j+1);
+    }
+    
+    //Variables para mensajes de errores
+    /*
+    @erPivotInvalido "El valor debe ser >= 1"
+    @erSinImpares "Elementos impares no encontrados"
+    @erImparesInsuficientes "No existen suficientes elementos impares para el calculo"
+    @erElementosInsuficientes "La lista tiene menos elementos que el indicado"
+    @erListaVacia "La lista esta vacia"
+    */
+    fprintf(fp,  "@erPivotInvalido \t db \"El valor debe ser >= 1\", \"$\", 22 dup (?)\n");
+    fprintf(fp,  "@erSinImpares \t db \"Elementos impares no encontrados\", \"$\", 32 dup (?)\n");
+    fprintf(fp,  "@erImparesInsuficientes \t db \"No existen suficientes elementos impares para el calculo\", \"$\", 56 dup (?)\n");
+    fprintf(fp,  "@erElementosInsuficientes \t db \"La lista tiene menos elementos que el indicado\", \"$\", 46 dup (?)\n");
+    fprintf(fp,  "@erListaVacia \t db \"La lista esta vacia\", \"$\", 19 dup (?)\n");
+
+    fprintf(fp,  "@rangoMinimo  dd 1.00\n");
+    fprintf(fp,  "@valor_cero  dd 0.00\n");
+    fprintf(fp,  "@valor_uno  dd 1.00\n");
+    fprintf(fp,  "@pivot  dd ?\n");
+    
+    t_nodo * aux;
+    for(int x = cantLista; x > 0; x--)
+    {
+        aux = (t_nodo *) malloc (sizeof(t_nodo));;
+        if(desapilar(&pilaImpares, aux) != 0)
+        {
+            fprintf(fp,  "@cantImpares%d  dd %d.00\n", x, aux->info.nro);
+        }
+
+        if(desapilar(&pilaElementos, aux) != 0)
+        {
+            fprintf(fp,  "@cantElementos%d  dd %d.00\n", x, aux->info.nro);
+        }
+    }
+    
+}
+
+char * obtenerTipodb_dd(int tipoDato){
+    if(tipoDato==4){
+        return "db";
+    }else{
+        return "dd";
+    }
+}
+
+int obtenerTipo(char* valor){
+    int i;
+    for(i = 0; i<99; i++){
+        if(simbolo[i].flag == 1)
+        {
+            if(strcmp(simbolo[i].nombre,valor)==0)
+                return simbolo[i].tipoDato;
+        }
+    }
+    return -1;
+}
+
+int obtenerIndiceTS(char* nombre)
+{
+    int x;
+    for (x=0; x<99; x++ ){
+        if ( strcmp(simbolo[x].valor, nombre) == 0 && simbolo[x].flag==1)
+        {
+            return x;
+        }
+    }
+    return -1;
+}
+
+void generarAssembler(t_nodo* arbol){
+    FILE*fp=fopen("EA3.asm","w+");
+    if(!fp){
+        printf("Error al generar el assembler.\n");
+        return;
+    }
+    fprintf(fp, "include macros.asm\n");
+    fprintf(fp, "include number.asm\n\n");          
+    fprintf(fp, ".MODEL LARGE\n");
+    fprintf(fp, ".386\n");
+    fprintf(fp, ".STACK 200h\n");
+
+    cargarDATA(fp, arbol);
+    
+    nroAux=1;
+
+    generarCodigo(fp, arbol);
+
+    fprintf(fp, "finalizar_por_error:\n");
+    fprintf(fp, "MOV EAX, 4C00h\n");
+    fprintf(fp, "INT 21h\n\n");
+    fprintf(fp, "END START");
+    fprintf(fp, "\n");
+	fclose(fp);
+	
+    printf("\n\nFin generacion codigo asm.\n");
+}
+
+void generarCodigo (FILE* fp, t_nodo *arbol) {
+    fprintf(fp, "\n.CODE\n\n");
+    fprintf(fp, "START:\n");
+    fprintf(fp, "MOV EAX, @DATA\n");
+    fprintf(fp, "MOV DS, EAX\n");
+    fprintf(fp, "MOV ES, EAX\n\n");
+    //recorrer_en_orden(arbol);
+    recorrerGenerandoCodigo(arbol, fp);    
+}
+
+t_nodo * crearNodoBloqueIf(int x, char * id)
+{
+    t_nodo *aux;
+    t_info info;
+    strcpy(info.valor,"bloque_if");
+    t_nodo *auxDer = restarCantidad();
+    t_nodo *auxIzq = sumarValor(x, id);
+    aux = crearNodo(&info,auxDer,auxIzq);
+
+    return aux;
+}
+
+t_nodo * crearNodoCondicion()
+{
+    t_nodo *aux;
+    t_info padre;
+    strcpy(padre.valor,"Mayor");
+    t_info hizq;
+    strcpy(hizq.valor,"@pivot");
+    t_info hder;
+    strcpy(hder.valor,"@valor_cero");
+    aux = crearNodo(&padre,crearHoja(&hizq),crearHoja(&hder));
+
+    return aux;
+}
+
+t_nodo * asignarPivot(char * idPivot)
+{
+    t_nodo *aux;
+    t_info padre;
+    strcpy(padre.valor,"=");
+    t_info hizq;
+    strcpy(hizq.valor,"@pivot");
+    t_info hder;
+    strcpy(hder.valor,idPivot);
+    aux = crearNodo(&padre,crearHoja(&hizq),crearHoja(&hder));
+
+    return aux;
+}
+
+t_nodo * restarCantidad()
+{
+    t_nodo *aux;
+    t_info rpadre;
+    strcpy(rpadre.valor,"-");
+    t_info rhizq;
+    strcpy(rhizq.valor,"@pivot");
+    t_info rhder;
+    strcpy(rhder.valor,"@valor_uno");
+    aux = crearNodo(&rpadre,crearHoja(&rhizq),crearHoja(&rhder));
+    t_info apadre;
+    strcpy(apadre.valor,"=");
+    t_info ahizq;
+    strcpy(ahizq.valor,"@pivot");
+    aux = crearNodo(&apadre,crearHoja(&ahizq),aux);
+
+    return aux;
+}
+
+t_nodo * sumarValor(int x, char * id)
+{
+    char valorString[100];
+    t_nodo *aux;
+    t_info rpadre;
+    strcpy(rpadre.valor,"+");
+    t_info rhizq;
+    strcpy(rhizq.valor,id);
+    t_info rhder;
+
+    sprintf(valorString, "%d", x);
+    strcpy(rhder.valor,valorString);
+    aux = crearNodo(&rpadre,crearHoja(&rhizq),crearHoja(&rhder));
+    t_info apadre;
+    strcpy(apadre.valor,"=");
+    t_info ahizq;
+    strcpy(ahizq.valor,id);
+    aux = crearNodo(&apadre,crearHoja(&ahizq),aux);
+
+    return aux;
+}
+
+t_nodo * crearCondicionValidacion(int cantLista, char * idPivot, char* valor)
+{
+    t_nodo * aux;
+    t_info padre;
+    strcpy(padre.valor,"Mayor");
+    t_info hizq;
+    strcpy(hizq.valor,idPivot);
+    t_info hder;
+    char nroString[100];
+    sprintf(nroString, "%d", cantLista);
+    char valorString[100];
+    strcpy(valorString, valor);
+    strcat(valorString, nroString);
+    strcpy(hder.valor,valorString);
+    aux = crearNodo(&padre,crearHoja(&hizq),crearHoja(&hder));
+
+    return aux;
+}
+
+t_nodo * crearMensajeValidacion(char* error)
+{
+    t_nodo * aux;
+    t_info padre;
+    strcpy(padre.valor,"WRITE");
+    t_info hizq;
+    strcpy(hizq.valor,"stderr");
+    t_info hder;
+    strcpy(hder.valor,error);
+    aux = crearNodo(&padre,crearHoja(&hizq),crearHoja(&hder));
+
+    return aux;
+}
+
+t_nodo * poner_id_en_cero(char* id){
+    t_nodo * aux;
+    t_info padre;
+    strcpy(padre.valor,"=");
+    t_info hizq;
+    strcpy(hizq.valor, id);
+    t_info hder;
+    strcpy(hder.valor,"@valor_cero");
+    aux = crearNodo(&padre,crearHoja(&hizq),crearHoja(&hder));
+
+    return aux;
+}
+
+void crear_pila(t_pila* pp)
+{
+    *pp=NULL; 
+}
+
+int apilar(t_pila* pp,t_nodo* nodo)
+{
+    t_nodoPila* pn=(t_nodoPila*)malloc(sizeof(t_nodoPila));
+    if(!pn)
+        return 0;
+    pn->info=*nodo;
+    pn->psig=*pp;
+    *pp=pn;
+    return 1;
+}
+
+int desapilar(t_pila* pp,t_nodo* info)
+{
+    if(!*pp){
+        return 0;
+    }
+    *info=(*pp)->info;
+    *pp=(*pp)->psig;
+    return 1;
 }
