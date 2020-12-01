@@ -54,10 +54,6 @@ s:
     prog {
         printf("\n Regla 0: Start -> Prog");
         printf("\n\nFIN PROGRAMA\n\n");
-        for(int j=0; j<cantLista; j++)
-        {
-            printf("\nLista: %d | Cant Impares: %d | Cant Elementos: %d", j, cantImpares[j],cantElementos[j]);
-        }
         crearArchivoTS();
         sPtr=progPtr;
         
@@ -192,7 +188,6 @@ suma_impar:
         printf("\n Regla 7: suma_impar ->  SUMA_IMPAR PAR_A ID PYC C_A C_C PAR_C");
 
         //Cargar error lista vacia.
-        lista_vacia = 1;
         t_info info;
         strcpy(info.valor,"WRITE");
         sumaPtr = crearNodo(&info, crearHojaT("stderr"), crearHojaT("@erListaVacia"));
@@ -245,9 +240,6 @@ lista:
             } else {
                 listaConst[tope] = $3;
                 cantImpares[cantLista]++;
-                
-                t_info infoCTE;
-                strcpy(infoCTE.valor, valorString);
 
                 t_info info_if;
                 strcpy(info_if.valor,"IF");

@@ -9,8 +9,3 @@ _3                                                 | CTE ENTERA     | 3         
 _4                                                 | CTE ENTERA     | 4                                                  | 0         
 _5                                                 | CTE ENTERA     | 5                                                  | 0         
 _"El resultado es: "                               | CTE STRING     | "El resultado es: "                                | 17        
-_21                                                | CTE ENTERA     | 21                                                 | 0         
-_7                                                 | CTE ENTERA     | 7                                                  | 0         
-_44                                                | CTE ENTERA     | 44                                                 | 0         
-_40                                                | CTE ENTERA     | 40                                                 | 0         
-_33                                                | CTE ENTERA     | 33                                                 | 0         
